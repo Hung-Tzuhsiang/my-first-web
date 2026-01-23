@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>個人記帳 App</title>
     <style>
-        body { font-family: "微軟正黑體", sans-serif; background-color: #f0f2f5; margin: 0; padding-bottom: 70px; /* 預留底部選單空間 */ }
+        body { font-family: "微軟正黑體", sans-serif; background-color: #f0f2f5; margin: 0; padding-bottom: 70px; }
         
-        /* 頁面容器 */
+        /* 頁面切換控制 */
         .page { display: none; padding: 20px; max-width: 600px; margin: 0 auto; }
         .active-page { display: block; }
 
@@ -16,14 +16,14 @@
         h2 { text-align: center; color: #1a73e8; margin-bottom: 20px; font-weight: 800; }
 
         /* 表單元件 */
-        label { display: block; margin-top: 12px; color: #555; font-weight: bold; font-size: 0.9em; }
+        label { display: block; margin-top: 12px; color: #555; font-weight: bold; font-size: 0.95em; }
         select, input, button { width: 100%; padding: 12px; margin-top: 5px; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; box-sizing: border-box; }
         
-        /* 按鈕 */
-        .btn-primary { background-color: #1a73e8; color: white; border: none; font-weight: bold; margin-top: 25px; cursor: pointer; }
-        .btn-search { background-color: #34a853; color: white; border: none; font-weight: bold; margin-top: 15px; cursor: pointer; }
-
-        /* 查詢結果列表 */
+        /* 按鈕樣式 */
+        .btn-primary { background-color: #1a73e8; color: white; border: none; font-weight: bold; margin-top: 25px; cursor: pointer; padding: 14px; }
+        .btn-search { background-color: #34a853; color: white; border: none; font-weight: bold; margin-top: 15px; cursor: pointer; padding: 12px; }
+        
+        /* 查詢結果 */
         .result-item { border-bottom: 1px solid #eee; padding: 12px 0; display: flex; justify-content: space-between; align-items: center; }
         .result-left { display: flex; flex-direction: column; }
         .res-date { font-size: 0.8em; color: #888; }
@@ -34,7 +34,7 @@
         .expense { color: #ea4335; } /* 紅色 */
 
         /* 底部導航列 */
-        .bottom-nav { position: fixed; bottom: 0; width: 100%; background: white; border-top: 1px solid #ddd; display: flex; justify-content: space-around; padding: 10px 0; box-shadow: 0 -2px 5px rgba(0,0,0,0.05); }
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; background: white; border-top: 1px solid #ddd; display: flex; justify-content: space-around; padding: 10px 0; box-shadow: 0 -2px 5px rgba(0,0,0,0.05); z-index: 1000; }
         .nav-item { text-align: center; color: #888; cursor: pointer; font-size: 0.9em; flex: 1; }
         .nav-item.active { color: #1a73e8; font-weight: bold; }
         .nav-icon { display: block; font-size: 1.5em; margin-bottom: 2px; }
@@ -60,12 +60,12 @@
 
                 <div id="subCatGroup">
                     <label>🏷️ 細項分類</label>
-                    <select name="sub_cat" id="subCat">
+                    <select name="sub_cat" id="subCat" onchange="updatePlaceholder()">
                         <option value="" disabled selected>請先選大項...</option>
                     </select>
                 </div>
 
-                <label>📝 內容說明 (必填)</label>
+                <label id="contentLabel">📝 內容說明 (必填)</label>
                 <input type="text" name="content" placeholder="例如: 午餐" required>
 
                 <label>💲 金額</label>
@@ -83,26 +83,21 @@
     <div id="page-search" class="page">
         <div class="card">
             <h2>🔍 查帳</h2>
-            
             <label>📅 開始日期</label>
             <input type="date" id="searchStart">
             <label>📅 結束日期</label>
             <input type="date" id="searchEnd">
-
             <label>📂 分類篩選</label>
             <select id="searchMainCat">
                 <option value="">全部</option>
             </select>
-
             <label>📝 關鍵字</label>
             <input type="text" id="searchKeyword" placeholder="搜尋內容...">
-
             <button onclick="runSearch()" class="btn-search">查詢</button>
             <div class="loader" id="searchLoader"></div>
-            
             <hr>
             <div id="resultsArea">
-                <p style="text-align:center; color:#888;">請輸入條件並查詢</p>
+                <p style="text-align:center; color:#888; margin-top:20px;">請輸入條件並查詢</p>
             </div>
         </div>
     </div>
@@ -117,52 +112,60 @@
     </div>
 
     <script>
-        // ⚠️⚠️⚠️ 請換成你的 Apps Script 網址 ⚠️⚠️⚠️
+        // ⚠️⚠️⚠️ 請換成你的最新 Apps Script 網址 ⚠️⚠️⚠️
         const scriptURL = 'https://script.google.com/macros/s/AKfycbwmOiZBz0YtDiRRJKYEoEZiSvaZ1A9ccbistMwSRGwf_29GQeeaPNTaWeplajei0MPU/exec';
 
-        // 初始化變數
         let categories = {};
+        let placeholderMap = {};
+        let requirementsMap = {}; // 必填設定
 
-        // 頁面載入時執行
+        // 1. 初始化
         window.onload = function() {
-            // 1. 設定日期預設值
             document.getElementById('dateInput').valueAsDate = new Date();
             
-            // 2. 載入選單資料 (共用於記帳與查詢)
             fetch(scriptURL)
                 .then(response => response.json())
                 .then(data => {
-                    categories = data;
+                    // 檢查資料結構
+                    if (data.categories) {
+                        categories = data.categories;
+                        placeholderMap = data.hints || {};
+                        requirementsMap = data.requirements || {};
+                    } else {
+                        categories = data; // 舊版相容
+                    }
                     initDropdowns();
                 })
-                .catch(error => alert("無法載入選單，請檢查網路"));
+                .catch(error => {
+                    console.error(error);
+                    alert("載入失敗，請檢查網路！");
+                });
         };
 
-        // 初始化下拉選單 (記帳頁 & 查詢頁)
+        // 2. 初始化選單
         function initDropdowns() {
             const mainSelect = document.getElementById("mainCat");
             const searchSelect = document.getElementById("searchMainCat");
             
             mainSelect.innerHTML = '<option value="" disabled selected>請選擇...</option>';
-            // 查詢頁多一個 "全部"
-            searchSelect.innerHTML = '<option value="">全部</option>'; 
+            if(searchSelect) searchSelect.innerHTML = '<option value="">全部</option>'; 
 
             for (let main in categories) {
-                // 記帳頁選單
                 let opt1 = document.createElement("option");
                 opt1.value = main;
                 opt1.innerText = main;
                 mainSelect.appendChild(opt1);
 
-                // 查詢頁選單
-                let opt2 = document.createElement("option");
-                opt2.value = main;
-                opt2.innerText = main;
-                searchSelect.appendChild(opt2);
+                if(searchSelect) {
+                    let opt2 = document.createElement("option");
+                    opt2.value = main;
+                    opt2.innerText = main;
+                    searchSelect.appendChild(opt2);
+                }
             }
         }
 
-        // 記帳頁：細項連動
+        // 3. 連動細項
         function updateSubCat() {
             const main = document.getElementById("mainCat").value;
             const subSelect = document.getElementById("subCat");
@@ -194,9 +197,39 @@
                     subSelect.appendChild(el);
                 });
             }
+            // 🔥 大項改變也要觸發提示檢查
+            updatePlaceholder();
         }
 
-        // 記帳頁：送出表單
+        // 4. 更新提示與必填狀態 (核心邏輯)
+        function updatePlaceholder() {
+            const subSelect = document.getElementById("subCat");
+            const contentInput = document.getElementsByName("content")[0];
+            const contentLabel = document.getElementById("contentLabel");
+            const selectedSub = subSelect.value;
+
+            // A. 更新提示文字
+            contentInput.placeholder = placeholderMap[selectedSub] || placeholderMap["default"] || "例如: 詳細說明...";
+
+            // B. 更新必填狀態
+            // 邏輯：除非 requirementsMap 明確設為 false (Excel 填"否")，否則皆為必填
+            let isRequired = true;
+            if (requirementsMap[selectedSub] === false) {
+                isRequired = false;
+            }
+
+            if (isRequired) {
+                contentInput.setAttribute("required", "");
+                contentLabel.innerText = "📝 內容說明 (必填)";
+                contentLabel.style.color = "#555"; 
+            } else {
+                contentInput.removeAttribute("required");
+                contentLabel.innerText = "📝 內容說明 (選填)";
+                contentLabel.style.color = "#28a745"; // 綠色提示
+            }
+        }
+
+        // 5. 提交表單
         const form = document.forms['accountingForm'];
         const btn = document.getElementById('submitBtn');
         const loader = document.getElementById('loader');
@@ -213,6 +246,7 @@
                     document.getElementById('dateInput').valueAsDate = new Date();
                     document.getElementById("subCatGroup").style.display = "block";
                     document.getElementById("subCat").innerHTML = "<option value='' disabled selected>請先選大項...</option>";
+                    updatePlaceholder(); // 重置狀態
                 })
                 .catch(error => alert('❌ 發生錯誤！'))
                 .finally(() => {
@@ -221,9 +255,7 @@
                 });
         });
 
-        // ============================
-        // 查詢功能
-        // ============================
+        // 6. 查詢功能
         function runSearch() {
             const start = document.getElementById("searchStart").value;
             const end = document.getElementById("searchEnd").value;
@@ -235,7 +267,6 @@
             resultsArea.innerHTML = "";
             searchLoader.style.display = "block";
 
-            // 組裝查詢網址 (action=search)
             let queryURL = scriptURL + "?action=search";
             if(start) queryURL += "&start=" + start;
             if(end) queryURL += "&end=" + end;
@@ -250,18 +281,13 @@
                         resultsArea.innerHTML = '<p style="text-align:center;">查無資料</p>';
                         return;
                     }
-
-                    // 產生列表
                     let html = "";
                     data.forEach(row => {
-                        let date = new Date(row[0]).toISOString().split('T')[0]; // 取出日期 yyyy-mm-dd
-                        let cat = row[1] + (row[2] !== "-" ? " - " + row[2] : ""); // 大項 - 細項
+                        let date = new Date(row[0]).toISOString().split('T')[0];
+                        let cat = row[1] + (row[2] !== "-" ? " - " + row[2] : "");
                         let desc = row[3];
                         let price = row[4];
-                        
-                        // 判斷顏色
                         let colorClass = price < 0 ? "expense" : "income";
-
                         html += `
                         <div class="result-item">
                             <div class="result-left">
@@ -282,18 +308,13 @@
                 });
         }
 
-        // 切換分頁 (UI)
+        // 7. 頁面切換
         function switchPage(pageName, navElement) {
-            // 隱藏所有頁面
-            document.querySelectorAll('.page').forEach(el => el.classList.remove('active-page'));
-            // 顯示目標頁面
-            document.getElementById('page-' + pageName).classList.add('active-page');
-            
-            // 更新導航按鈕樣式
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-            navElement.classList.add('active');
+             document.querySelectorAll('.page').forEach(el => el.classList.remove('active-page'));
+             document.getElementById('page-' + pageName).classList.add('active-page');
+             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+             navElement.classList.add('active');
         }
     </script>
 </body>
 </html>
-
