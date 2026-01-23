@@ -3,22 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的個人首頁</title>
+    <title>洪子翔的個人首頁</title>
     <style>
         body { font-family: "微軟正黑體", sans-serif; background-color: #f4f4f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
         .card { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 400px; text-align: center; }
         h1 { color: #333; margin-bottom: 10px; }
         p { color: #666; line-height: 1.6; }
         .tag { background: #e2e8f0; color: #475569; padding: 4px 8px; border-radius: 4px; font-size: 0.9em; margin: 2px; display: inline-block; }
-        .btn { display: inline-block; margin-top: 20px; padding: 10px 20px; background-color: #0070f3; color: white; text-decoration: none; border-radius: 6px; }
-        .btn:hover { background-color: #0051a2; }
+        /* LINE 的綠色按鈕樣式 */
+        .btn { display: inline-block; margin-top: 20px; padding: 10px 20px; background-color: #06c755; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;}
+        .btn:hover { background-color: #05a545; }
+        .footer { margin-top: 20px; font-size: 0.8em; color: #999; }
     </style>
 </head>
 <body>
     <div class="card">
         <h1>你好，我是洪子翔</h1>
         <p>機電整合 PM | EMBA 進修中 | AI 愛好者</p>
+        
         <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+        
         <div style="text-align: left;">
             <p><strong>專長領域：</strong></p>
             <div>
@@ -26,11 +30,16 @@
                 <span class="tag">Excel VBA</span>
                 <span class="tag">專案管理</span>
             </div>
+            
             <p><strong>關於我：</strong></p>
             <p>目前致力於將傳統自動化與 AI 工具結合，提升工作效率。正在雲科大攻讀 EMBA。</p>
         </div>
-        <a href="mailto:rock750528@gmail.com" class="btn">聯絡我</a>
+
+        <a href="https://line.me/ti/p/Z4I5XYcHOM" class="btn" target="_blank">加我的 LINE</a>
+        
+        <div class="footer">
+            Email: rock750528@gmail.com
+        </div>
     </div>
 </body>
-
 </html>
