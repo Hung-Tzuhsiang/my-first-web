@@ -3,43 +3,148 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>洪子翔的個人首頁</title>
+    <title>洪子翔的記帳本</title>
     <style>
-        body { font-family: "微軟正黑體", sans-serif; background-color: #f4f4f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        .card { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 400px; text-align: center; }
-        h1 { color: #333; margin-bottom: 10px; }
-        p { color: #666; line-height: 1.6; }
-        .tag { background: #e2e8f0; color: #475569; padding: 4px 8px; border-radius: 4px; font-size: 0.9em; margin: 2px; display: inline-block; }
-        /* LINE 的綠色按鈕樣式 */
-        .btn { display: inline-block; margin-top: 20px; padding: 10px 20px; background-color: #06c755; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;}
-        .btn:hover { background-color: #05a545; }
-        .footer { margin-top: 20px; font-size: 0.8em; color: #999; }
+        body { font-family: "微軟正黑體", sans-serif; background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .card { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 90%; max-width: 400px; }
+        h2 { text-align: center; color: #1a73e8; margin-bottom: 20px; font-weight: 800; }
+        
+        label { display: block; margin-top: 12px; color: #555; font-size: 0.95em; font-weight: bold; }
+        select, input, button { width: 100%; padding: 12px; margin-top: 5px; border-radius: 8px; box-sizing: border-box; border: 1px solid #ccc; font-size: 16px; }
+        
+        /* 針對選單與輸入框的優化 */
+        select { background-color: #f8f9fa; cursor: pointer; }
+        input:focus, select:focus { border-color: #1a73e8; outline: none; box-shadow: 0 0 5px rgba(26,115,232,0.2); }
+        
+        /* 送出按鈕 */
+        button { background-color: #1a73e8; color: white; border: none; font-weight: bold; margin-top: 25px; cursor: pointer; transition: 0.2s; font-size: 1.1em; padding: 14px; }
+        button:hover { background-color: #1557b0; }
+        
+        /* 載入動畫 */
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #1a73e8; border-radius: 50%; width: 25px; height: 25px; animation: spin 1s linear infinite; display: none; margin: 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* 隱藏細項選單的樣式 (給臨時收入用) */
+        .hidden { display: none; }
     </style>
 </head>
 <body>
-    <div class="card">
-        <h1>你好，我是洪子翔</h1>
-        <p>機電整合 PM | EMBA 進修中 | AI 愛好者</p>
-        
-        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
-        
-        <div style="text-align: left;">
-            <p><strong>專長領域：</strong></p>
-            <div>
-                <span class="tag">PLC 控制</span>
-                <span class="tag">Excel VBA</span>
-                <span class="tag">專案管理</span>
-            </div>
-            
-            <p><strong>關於我：</strong></p>
-            <p>目前致力於將傳統自動化與 AI 工具結合，提升工作效率。正在雲科大攻讀 EMBA。</p>
-        </div>
 
-        <a href="https://line.me/ti/p/Z4I5XYcHOM" class="btn" target="_blank">加我的 LINE</a>
-        
-        <div class="footer">
-            Email: rock750528@gmail.com
-        </div>
+    <div class="card">
+        <h2>📒 雲端記帳本</h2>
+        <form id="accountingForm">
+            
+            <label>📅 日期</label>
+            <input type="date" name="date" id="dateInput" required>
+
+            <label>📂 大項分類</label>
+            <select name="main_cat" id="mainCat" required onchange="updateSubCat()">
+                <option value="" disabled selected>請選擇...</option>
+                <option value="生活費支出">🍔 生活費支出</option>
+                <option value="月固定支出">🏠 月固定支出</option>
+                <option value="月固定收入">💰 月固定收入</option>
+                <option value="月臨時收入">🧧 月臨時收入</option>
+                <option value="年固定支出">📅 年固定支出</option>
+                <option value="年臨時收入">💎 年臨時收入</option>
+            </select>
+
+            <div id="subCatGroup">
+                <label>🏷️ 細項分類</label>
+                <select name="sub_cat" id="subCat">
+                    <option value="" disabled selected>請先選大項...</option>
+                </select>
+            </div>
+
+            <label>📝 內容說明 (必填)</label>
+            <input type="text" name="content" placeholder="例如: 午餐、尾牙中獎" required>
+
+            <label>💲 金額</label>
+            <input type="number" name="price" placeholder="輸入金額" required inputmode="numeric">
+
+            <label>📎 備註 (選填)</label>
+            <input type="text" name="note" placeholder="補充說明...">
+
+            <button type="submit" id="submitBtn">送出紀錄</button>
+            <div class="loader" id="loader"></div>
+        </form>
     </div>
+
+    <script>
+        // ⚠️⚠️⚠️ 請將下面這串換成你的 Apps Script 網址 ⚠️⚠️⚠️
+        const scriptURL = 'https://script.google.com/macros/s/你的那一長串ID/exec';
+
+        // 設定日期預設為今天
+        document.getElementById('dateInput').valueAsDate = new Date();
+
+        // 定義細項選單資料
+        const categories = {
+            "生活費支出": ["個人外食", "其他外食", "日用雜貨", "家庭娛樂", "個人花費", "小孩花費", "交通費", "醫療費", "喜慶・交際費", "其他無法分類"],
+            "月固定支出": ["補貼家用", "子翔-保誠人壽", "電話費", "勞保", "健保", "公司福利金"],
+            "月固定收入": ["公司薪資", "公司出差津貼", "公司外宿津貼", "公司車程津貼"],
+            "年固定支出": ["子翔-全球人壽", "苡恩-中國人壽", "得倫-中國人壽", "KUGA保險", "KUGA牌照稅", "KUGA燃料稅"]
+        };
+
+        // 連動選單邏輯
+        function updateSubCat() {
+            const main = document.getElementById("mainCat").value;
+            const subSelect = document.getElementById("subCat");
+            const subGroup = document.getElementById("subCatGroup");
+
+            // 清空舊選項
+            subSelect.innerHTML = "";
+
+            // 判斷是否為「臨時收入」(這兩項沒有細項)
+            if (main === "月臨時收入" || main === "年臨時收入") {
+                // 隱藏細項選單，並設為非必填
+                subGroup.style.display = "none";
+                subSelect.removeAttribute("required");
+            } else {
+                // 顯示細項選單
+                subGroup.style.display = "block";
+                subSelect.setAttribute("required", ""); // 設為必填
+
+                // 填入對應的選項
+                const options = categories[main];
+                if (options) {
+                    options.forEach(opt => {
+                        const el = document.createElement("option");
+                        el.value = opt;
+                        el.innerText = opt;
+                        subSelect.appendChild(el);
+                    });
+                } else {
+                    subSelect.innerHTML = "<option>無細項</option>";
+                }
+            }
+        }
+
+        // 表單送出邏輯
+        const form = document.forms['accountingForm'];
+        const btn = document.getElementById('submitBtn');
+        const loader = document.getElementById('loader');
+
+        form.addEventListener('submit', e => {
+            e.preventDefault();
+            btn.style.display = 'none';
+            loader.style.display = 'block';
+
+            fetch(scriptURL, { method: 'POST', body: new FormData(form)})
+                .then(response => {
+                    alert('✅ 記帳成功！');
+                    form.reset(); // 清空表單
+                    document.getElementById('dateInput').valueAsDate = new Date(); // 日期重設為今天
+                    document.getElementById("subCatGroup").style.display = "block"; // 恢復選單
+                    document.getElementById("subCat").innerHTML = "<option value='' disabled selected>請先選大項...</option>";
+                })
+                .catch(error => {
+                    alert('❌ 發生錯誤，請稍後再試。');
+                    console.error('Error!', error.message);
+                })
+                .finally(() => {
+                    btn.style.display = 'block';
+                    loader.style.display = 'none';
+                });
+        });
+    </script>
 </body>
 </html>
