@@ -44,10 +44,10 @@
             </div>
 
             <label>📝 內容說明 (必填)</label>
-            <input type="text" name="content" placeholder="例如: 午餐、汽車保養" required>
+            <input type="text" name="content" placeholder="例如: 午餐、利息、汽車保養" required>
 
             <label>💲 金額</label>
-            <input type="number" name="price" placeholder="輸入金額" required inputmode="numeric">
+            <input type="number" name="price" placeholder="輸入金額 (自動判斷正負)" required inputmode="numeric">
 
             <label>📎 備註 (選填)</label>
             <input type="text" name="note" placeholder="補充說明...">
@@ -58,55 +58,44 @@
     </div>
 
     <script>
-        // ⚠️⚠️⚠️ 請換成你的 Apps Script 網址 ⚠️⚠️⚠️
-        const scriptURL = 'https://script.google.com/macros/s/AKfycbwlVZK8MTJKlTNajB7B-tzUW_oElpVCNhDXSlwAt6K_CCHxlvTh2qMPK8VH0td_moDF/exec';
+        // ⚠️⚠️⚠️ 請換成你的新版 Apps Script 網址 ⚠️⚠️⚠️
+        const scriptURL = 'https://script.google.com/macros/s/你的那一長串ID/exec';
 
-        // 1. 初始化日期
         document.getElementById('dateInput').valueAsDate = new Date();
-
-        // 定義全域變數存選單資料
         let categories = {};
 
-        // 2. 網頁載入時，自動去 Google 抓最新的選單
+        // 1. 載入選單
         window.onload = function() {
             const mainSelect = document.getElementById("mainCat");
-            
             fetch(scriptURL)
                 .then(response => response.json())
                 .then(data => {
-                    categories = data; // 存入變數
-                    console.log("選單資料:", categories);
-                    
-                    // 產生大項選單
+                    categories = data;
                     mainSelect.innerHTML = '<option value="" disabled selected>請選擇...</option>';
                     for (let main in categories) {
                         let opt = document.createElement("option");
                         opt.value = main;
-                        opt.innerText = main; // 顯示名稱
+                        opt.innerText = main;
                         mainSelect.appendChild(opt);
                     }
                 })
                 .catch(error => {
-                    alert("⚠️ 無法載入選單，請檢查網路！");
-                    console.error(error);
+                    alert("選單載入失敗，請確認網路！");
                     mainSelect.innerHTML = '<option value="" disabled>載入失敗</option>';
                 });
         };
 
-        // 3. 連動選單邏輯 (使用動態抓來的資料)
+        // 2. 連動選單
         function updateSubCat() {
             const main = document.getElementById("mainCat").value;
             const subSelect = document.getElementById("subCat");
             const subGroup = document.getElementById("subCatGroup");
 
-            subSelect.innerHTML = ""; // 清空
+            subSelect.innerHTML = "";
 
-            // 如果該大項沒有細項 (或陣列是空的)
             if (!categories[main] || categories[main].length === 0) {
                 subGroup.style.display = "none";
                 subSelect.removeAttribute("required");
-                
-                // 塞一個預設值，讓資料庫有東西寫
                 let opt = document.createElement("option");
                 opt.value = "-";
                 opt.selected = true;
@@ -114,8 +103,6 @@
             } else {
                 subGroup.style.display = "block";
                 subSelect.setAttribute("required", "");
-                
-                // 加入預設提示
                 let defaultOpt = document.createElement("option");
                 defaultOpt.text = "請選擇細項...";
                 defaultOpt.value = "";
@@ -123,7 +110,6 @@
                 defaultOpt.selected = true;
                 subSelect.appendChild(defaultOpt);
 
-                // 產生細項
                 categories[main].forEach(optText => {
                     let el = document.createElement("option");
                     el.value = optText;
@@ -133,7 +119,7 @@
             }
         }
 
-        // 4. 表單送出邏輯
+        // 3. 送出表單
         const form = document.forms['accountingForm'];
         const btn = document.getElementById('submitBtn');
         const loader = document.getElementById('loader');
@@ -152,7 +138,7 @@
                     document.getElementById("subCat").innerHTML = "<option value='' disabled selected>請先選大項...</option>";
                 })
                 .catch(error => {
-                    alert('❌ 錯誤！請稍後再試。');
+                    alert('❌ 發生錯誤！');
                 })
                 .finally(() => {
                     btn.style.display = 'block';
@@ -162,5 +148,3 @@
     </script>
 </body>
 </html>
-
-
