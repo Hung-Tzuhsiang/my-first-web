@@ -16,13 +16,13 @@
         label { display: block; margin-top: 12px; color: #555; font-weight: bold; font-size: 0.95em; }
         select, input, button { width: 100%; padding: 12px; margin-top: 5px; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; box-sizing: border-box; }
         
-        /* 按鈕群 */
+        /* 按鈕樣式 */
         .btn-primary { background-color: #1a73e8; color: white; border: none; font-weight: bold; margin-top: 25px; cursor: pointer; padding: 14px; }
         .btn-search { background-color: #34a853; color: white; border: none; font-weight: bold; margin-top: 15px; cursor: pointer; padding: 12px; }
         .btn-danger { background-color: #ea4335; color: white; border: none; font-weight: bold; margin-top: 15px; cursor: pointer; padding: 12px; width: 48%; float: right;}
         .btn-update { background-color: #fbbc05; color: black; border: none; font-weight: bold; margin-top: 15px; cursor: pointer; padding: 12px; width: 48%; float: left;}
 
-        /* 列表樣式 */
+        /* 列表與文字 */
         .result-item { border-bottom: 1px solid #eee; padding: 12px 0; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.2s; }
         .result-item:active { background-color: #f0f0f0; } 
         .result-left { display: flex; flex-direction: column; }
@@ -33,11 +33,12 @@
         .income { color: #34a853; } 
         .expense { color: #ea4335; } 
 
-        /* 彈窗樣式 */
+        /* 彈窗 */
         .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
         .modal-content { background-color: white; padding: 25px; border-radius: 15px; width: 90%; max-width: 400px; position: relative; max-height: 90vh; overflow-y: auto; }
         .close-btn { position: absolute; top: 15px; right: 20px; font-size: 24px; cursor: pointer; color: #aaa; }
 
+        /* 導航列 */
         .bottom-nav { position: fixed; bottom: 0; width: 100%; background: white; border-top: 1px solid #ddd; display: flex; justify-content: space-around; padding: 10px 0; box-shadow: 0 -2px 5px rgba(0,0,0,0.05); z-index: 1000; }
         .nav-item { text-align: center; color: #888; cursor: pointer; font-size: 0.9em; flex: 1; }
         .nav-item.active { color: #1a73e8; font-weight: bold; }
@@ -105,27 +106,20 @@
             <form id="editForm">
                 <input type="hidden" name="action" value="edit">
                 <input type="hidden" name="row_index" id="editRowIndex">
-                
                 <label>📅 日期</label>
                 <input type="date" name="date" id="editDate" required>
-                
                 <label>📂 大項</label>
                 <select name="main_cat" id="editMainCat" required onchange="updateSubCat('editMainCat', 'editSubCat', 'editSubCatGroup', 'editContent')"></select>
-                
                 <div id="editSubCatGroup">
                     <label>🏷️ 細項</label>
                     <select name="sub_cat" id="editSubCat" onchange="updatePlaceholder('editSubCat', 'editContent')"></select>
                 </div>
-                
                 <label>📝 內容</label>
                 <input type="text" name="content" id="editContent" required>
-                
                 <label>💲 金額 (正數)</label>
                 <input type="number" name="price" id="editPrice" required inputmode="numeric">
-                
                 <label>📎 備註</label>
                 <input type="text" name="note" id="editNote">
-
                 <div style="margin-top:20px; overflow:hidden;">
                     <button type="button" onclick="submitEdit('edit')" class="btn-update">儲存修改</button>
                     <button type="button" onclick="submitEdit('delete')" class="btn-danger">刪除</button>
@@ -148,36 +142,48 @@
         let placeholderMap = {};
         let requirementsMap = {}; 
 
+        // 🟢 頁面載入時執行 (最關鍵的地方)
         window.onload = function() {
-            // 1. 設定記帳頁面預設日期 (今天)
-            document.getElementById('dateInput').valueAsDate = new Date();
+            try {
+                // 1. 設定記帳頁面預設日期 (今天)
+                document.getElementById('dateInput').valueAsDate = new Date();
 
-            // 2. 🔥 設定查詢頁面預設日期 (當月1號 ~ 當月月底)
-            const today = new Date();
-            const yyyy = today.getFullYear();
-            const mm = String(today.getMonth() + 1).padStart(2, '0');
-            
-            // 當月第一天
-            const firstDay = `${yyyy}-${mm}-01`;
-            // 當月最後一天 (下個月的第 0 天即為本月最後一天)
-            const lastDayDate = new Date(yyyy, today.getMonth() + 1, 0);
-            const lastDay = `${lastDayDate.getFullYear()}-${String(lastDayDate.getMonth() + 1).padStart(2, '0')}-${String(lastDayDate.getDate()).padStart(2, '0')}`;
+                // 2. 🔥 設定查詢頁面預設日期 (當月1號 ~ 當月月底)
+                const today = new Date();
+                const yyyy = today.getFullYear();
+                const mm = String(today.getMonth() + 1).padStart(2, '0');
+                
+                const firstDay = `${yyyy}-${mm}-01`;
+                // 取得當月最後一天
+                const lastDayDate = new Date(yyyy, today.getMonth() + 1, 0);
+                const lastDay = `${lastDayDate.getFullYear()}-${String(lastDayDate.getMonth() + 1).padStart(2, '0')}-${String(lastDayDate.getDate()).padStart(2, '0')}`;
 
-            document.getElementById('searchStart').value = firstDay;
-            document.getElementById('searchEnd').value = lastDay;
+                const startInput = document.getElementById('searchStart');
+                const endInput = document.getElementById('searchEnd');
+                
+                if (startInput) startInput.value = firstDay;
+                if (endInput) endInput.value = lastDay;
+
+                // 3. 載入選單資料
+                fetch(scriptURL)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.categories) {
+                            categories = data.categories;
+                            placeholderMap = data.hints || {};
+                            requirementsMap = data.requirements || {};
+                        } else { categories = data; }
+                        initDropdowns();
+                        
+                        // 🔥 4. 選單載入完成後，自動執行一次查詢 (可選)
+                        // 如果你希望一打開就看到本月資料，請保留下面這行
+                        // runSearch(); 
+                    })
+                    .catch(error => { console.error(error); alert("載入失敗，請檢查網路！"); });
             
-            // 3. 載入選單
-            fetch(scriptURL)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.categories) {
-                        categories = data.categories;
-                        placeholderMap = data.hints || {};
-                        requirementsMap = data.requirements || {};
-                    } else { categories = data; }
-                    initDropdowns();
-                })
-                .catch(error => { console.error(error); alert("載入失敗，請檢查網路！"); });
+            } catch (e) {
+                console.error("Init Error:", e);
+            }
         };
 
         function initDropdowns() {
