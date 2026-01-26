@@ -22,9 +22,9 @@
         .btn-danger { background-color: #ea4335; color: white; border: none; font-weight: bold; margin-top: 15px; cursor: pointer; padding: 12px; width: 48%; float: right;}
         .btn-update { background-color: #fbbc05; color: black; border: none; font-weight: bold; margin-top: 15px; cursor: pointer; padding: 12px; width: 48%; float: left;}
 
-        /* 查詢結果 - 可點擊 */
+        /* 列表樣式 */
         .result-item { border-bottom: 1px solid #eee; padding: 12px 0; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.2s; }
-        .result-item:active { background-color: #f0f0f0; } /* 點擊時有回饋感 */
+        .result-item:active { background-color: #f0f0f0; } 
         .result-left { display: flex; flex-direction: column; }
         .res-date { font-size: 0.8em; color: #888; }
         .res-cat { font-weight: bold; color: #333; }
@@ -33,7 +33,7 @@
         .income { color: #34a853; } 
         .expense { color: #ea4335; } 
 
-        /* 編輯彈窗 (Modal) */
+        /* 彈窗樣式 */
         .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
         .modal-content { background-color: white; padding: 25px; border-radius: 15px; width: 90%; max-width: 400px; position: relative; max-height: 90vh; overflow-y: auto; }
         .close-btn { position: absolute; top: 15px; right: 20px; font-size: 24px; cursor: pointer; color: #aaa; }
@@ -52,7 +52,8 @@
         <div class="card">
             <h2>📝 新增紀錄</h2>
             <form id="accountingForm">
-                <input type="hidden" name="action" value="add"> <label>📅 日期</label>
+                <input type="hidden" name="action" value="add"> 
+                <label>📅 日期</label>
                 <input type="date" name="date" id="dateInput" required>
                 <label>📂 大項分類</label>
                 <select name="main_cat" id="mainCat" required onchange="updateSubCat('mainCat', 'subCat', 'subCatGroup', 'contentInput')">
@@ -148,7 +149,24 @@
         let requirementsMap = {}; 
 
         window.onload = function() {
+            // 1. 設定記帳頁面預設日期 (今天)
             document.getElementById('dateInput').valueAsDate = new Date();
+
+            // 2. 🔥 設定查詢頁面預設日期 (當月1號 ~ 當月月底)
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            
+            // 當月第一天
+            const firstDay = `${yyyy}-${mm}-01`;
+            // 當月最後一天 (下個月的第 0 天即為本月最後一天)
+            const lastDayDate = new Date(yyyy, today.getMonth() + 1, 0);
+            const lastDay = `${lastDayDate.getFullYear()}-${String(lastDayDate.getMonth() + 1).padStart(2, '0')}-${String(lastDayDate.getDate()).padStart(2, '0')}`;
+
+            document.getElementById('searchStart').value = firstDay;
+            document.getElementById('searchEnd').value = lastDay;
+            
+            // 3. 載入選單
             fetch(scriptURL)
                 .then(response => response.json())
                 .then(data => {
@@ -163,9 +181,7 @@
         };
 
         function initDropdowns() {
-            // 初始化新增頁面與編輯頁面的選單
             const targets = [['mainCat', 'searchMainCat'], ['editMainCat', null]];
-            
             targets.forEach(([mainId, searchId]) => {
                 const mainSelect = document.getElementById(mainId);
                 mainSelect.innerHTML = '<option value="" disabled selected>請選擇...</option>';
@@ -174,7 +190,6 @@
                     mainSelect.appendChild(opt);
                 }
             });
-            // 查詢頁面的分類
             const sSelect = document.getElementById("searchMainCat");
             sSelect.innerHTML = '<option value="">全部</option>';
             for (let main in categories) {
@@ -183,7 +198,6 @@
             }
         }
 
-        // 共用的細項連動邏輯
         function updateSubCat(mainId, subId, groupId, contentId) {
             const main = document.getElementById(mainId).value;
             const subSelect = document.getElementById(subId);
@@ -210,7 +224,6 @@
             else contentInput.setAttribute("required", "");
         }
 
-        // --- 新增紀錄 ---
         document.forms['accountingForm'].addEventListener('submit', e => {
             e.preventDefault();
             const btn = document.getElementById('submitBtn'); const loader = document.getElementById('loader');
@@ -222,7 +235,6 @@
                 .finally(() => { btn.style.display = 'block'; loader.style.display = 'none'; });
         });
 
-        // --- 查詢功能 ---
         function runSearch() {
             const start = document.getElementById("searchStart").value;
             const end = document.getElementById("searchEnd").value;
@@ -244,12 +256,10 @@
                 
                 let html = "";
                 data.forEach(row => {
-                    // row[6] 是我們藏的列號 (Row Index)
                     let rowDataJson = JSON.stringify(row).replace(/"/g, '&quot;'); 
                     let date = row[0]; let cat = row[1] + (row[2] !== "-" ? " - " + row[2] : "");
                     let desc = row[3]; let price = row[4]; let color = price < 0 ? "expense" : "income";
                     
-                    // 點擊後呼叫 openEditModal
                     html += `<div class="result-item" onclick="openEditModal(${rowDataJson})">
                         <div class="result-left"><span class="res-date">${date}</span><span class="res-cat">${cat}</span><span class="res-desc">${desc}</span></div>
                         <div class="res-amount ${color}">$${Math.abs(price)}</div>
@@ -259,26 +269,18 @@
             }).catch(err => { searchLoader.style.display = "none"; alert("查詢失敗"); });
         }
 
-        // --- 編輯功能 ---
         function openEditModal(row) {
-            // row: [日期, 大項, 細項, 內容, 金額, 備註, 列號]
             document.getElementById('editRowIndex').value = row[6];
             document.getElementById('editDate').value = row[0].replace(/\//g, "-");
             document.getElementById('editMainCat').value = row[1];
-            
-            // 觸發連動以產生細項選單
             updateSubCat('editMainCat', 'editSubCat', 'editSubCatGroup', 'editContent');
-            
-            // 延遲一下再填入細項，確保選單已生成
             setTimeout(() => {
                 document.getElementById('editSubCat').value = row[2];
                 updatePlaceholder('editSubCat', 'editContent');
             }, 50);
-
             document.getElementById('editContent').value = row[3];
-            document.getElementById('editPrice').value = Math.abs(row[4]); // 顯示絕對值
+            document.getElementById('editPrice').value = Math.abs(row[4]); 
             document.getElementById('editNote').value = row[5];
-            
             document.getElementById('editModal').style.display = "flex";
         }
 
@@ -289,7 +291,7 @@
             
             const form = document.getElementById('editForm');
             const formData = new FormData(form);
-            formData.set('action', actionType); // 強制設定動作 (edit 或 delete)
+            formData.set('action', actionType);
             
             document.querySelector('.btn-update').style.display = 'none';
             document.querySelector('.btn-danger').style.display = 'none';
@@ -301,9 +303,8 @@
                     if(text.includes("UPDATED")) alert("✅ 修改成功！");
                     else if(text.includes("DELETED")) alert("🗑️ 刪除成功！");
                     else alert("狀態：" + text);
-                    
                     closeModal();
-                    runSearch(); // 重新整理列表
+                    runSearch(); 
                 })
                 .catch(err => alert("❌ 請求失敗"))
                 .finally(() => {
