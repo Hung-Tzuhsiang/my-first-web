@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>家庭記帳</title>
     
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2953/2953363.png">
-    <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/2953/2953363.png">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2910/2910768.png">
+    <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/2910/2910768.png">
 
     <style>
         body { font-family: "微軟正黑體", sans-serif; background-color: #f0f2f5; margin: 0; padding-bottom: 70px; }
@@ -34,8 +34,8 @@
         .res-cat { font-weight: bold; color: #333; }
         .res-desc { font-size: 0.9em; color: #555; }
         .res-amount { font-weight: bold; font-size: 1.1em; }
-        .income { color: #34a853; } 
-        .expense { color: #ea4335; } 
+        .income { color: #34a853; } /* 綠色 */
+        .expense { color: #ea4335; } /* 紅色 */
 
         /* 底部導航列 */
         .bottom-nav { position: fixed; bottom: 0; width: 100%; background: white; border-top: 1px solid #ddd; display: flex; justify-content: space-around; padding: 10px 0; box-shadow: 0 -2px 5px rgba(0,0,0,0.05); z-index: 1000; }
@@ -116,7 +116,7 @@
     </div>
 
     <script>
-        // ⚠️⚠️⚠️ 請換成你的 Apps Script 網址 ⚠️⚠️⚠️
+        // ✅ 你的專屬 Apps Script 網址
         const scriptURL = 'https://script.google.com/macros/s/AKfycbwmOiZBz0YtDiRRJKYEoEZiSvaZ1A9ccbistMwSRGwf_29GQeeaPNTaWeplajei0MPU/exec';
 
         let categories = {};
@@ -254,7 +254,7 @@
                 });
         });
 
-        // 6. 查詢功能 (🔥 修正：直接讀取後端傳來的純文字日期)
+        // 6. 查詢功能 (🔥 使用後端傳來的純文字日期)
         function runSearch() {
             const start = document.getElementById("searchStart").value;
             const end = document.getElementById("searchEnd").value;
@@ -276,13 +276,17 @@
                 .then(response => response.json())
                 .then(data => {
                     searchLoader.style.display = "none";
+                    if (data.error) {
+                        alert("系統忙碌中，請稍後再試");
+                        return;
+                    }
                     if (data.length === 0) {
                         resultsArea.innerHTML = '<p style="text-align:center;">查無資料</p>';
                         return;
                     }
                     let html = "";
                     data.forEach(row => {
-                        // 🔥 關鍵改變：這裡直接接收字串，不做 new Date() 轉換
+                        // 🔥 這裡直接使用後端傳來的字串，不做 new Date() 轉換，避免時區跑掉
                         let date = row[0]; 
 
                         let cat = row[1] + (row[2] !== "-" ? " - " + row[2] : "");
@@ -320,4 +324,3 @@
     </script>
 </body>
 </html>
-
