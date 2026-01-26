@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>個人記帳 App</title>
+    <title>家庭記帳</title>
+    
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2953/2953363.png">
+    <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/2953/2953363.png">
+
     <style>
         body { font-family: "微軟正黑體", sans-serif; background-color: #f0f2f5; margin: 0; padding-bottom: 70px; }
         
@@ -30,8 +34,8 @@
         .res-cat { font-weight: bold; color: #333; }
         .res-desc { font-size: 0.9em; color: #555; }
         .res-amount { font-weight: bold; font-size: 1.1em; }
-        .income { color: #34a853; } /* 綠色 */
-        .expense { color: #ea4335; } /* 紅色 */
+        .income { color: #34a853; } 
+        .expense { color: #ea4335; } 
 
         /* 底部導航列 */
         .bottom-nav { position: fixed; bottom: 0; width: 100%; background: white; border-top: 1px solid #ddd; display: flex; justify-content: space-around; padding: 10px 0; box-shadow: 0 -2px 5px rgba(0,0,0,0.05); z-index: 1000; }
@@ -112,12 +116,12 @@
     </div>
 
     <script>
-        // ⚠️⚠️⚠️ 請換成你的最新 Apps Script 網址 ⚠️⚠️⚠️
-        const scriptURL = 'https://script.google.com/macros/s/AKfycbwmOiZBz0YtDiRRJKYEoEZiSvaZ1A9ccbistMwSRGwf_29GQeeaPNTaWeplajei0MPU/exec';
+        // ⚠️⚠️⚠️ 請換成你的 Apps Script 網址 ⚠️⚠️⚠️
+        const scriptURL = 'https://script.google.com/macros/s/你的ID/exec';
 
         let categories = {};
         let placeholderMap = {};
-        let requirementsMap = {}; // 必填設定
+        let requirementsMap = {}; 
 
         // 1. 初始化
         window.onload = function() {
@@ -126,13 +130,12 @@
             fetch(scriptURL)
                 .then(response => response.json())
                 .then(data => {
-                    // 檢查資料結構
                     if (data.categories) {
                         categories = data.categories;
                         placeholderMap = data.hints || {};
                         requirementsMap = data.requirements || {};
                     } else {
-                        categories = data; // 舊版相容
+                        categories = data; 
                     }
                     initDropdowns();
                 })
@@ -197,22 +200,18 @@
                     subSelect.appendChild(el);
                 });
             }
-            // 🔥 大項改變也要觸發提示檢查
             updatePlaceholder();
         }
 
-        // 4. 更新提示與必填狀態 (核心邏輯)
+        // 4. 更新提示與必填狀態
         function updatePlaceholder() {
             const subSelect = document.getElementById("subCat");
             const contentInput = document.getElementsByName("content")[0];
             const contentLabel = document.getElementById("contentLabel");
             const selectedSub = subSelect.value;
 
-            // A. 更新提示文字
             contentInput.placeholder = placeholderMap[selectedSub] || placeholderMap["default"] || "例如: 詳細說明...";
 
-            // B. 更新必填狀態
-            // 邏輯：除非 requirementsMap 明確設為 false (Excel 填"否")，否則皆為必填
             let isRequired = true;
             if (requirementsMap[selectedSub] === false) {
                 isRequired = false;
@@ -225,7 +224,7 @@
             } else {
                 contentInput.removeAttribute("required");
                 contentLabel.innerText = "📝 內容說明 (選填)";
-                contentLabel.style.color = "#28a745"; // 綠色提示
+                contentLabel.style.color = "#28a745"; 
             }
         }
 
@@ -246,7 +245,7 @@
                     document.getElementById('dateInput').valueAsDate = new Date();
                     document.getElementById("subCatGroup").style.display = "block";
                     document.getElementById("subCat").innerHTML = "<option value='' disabled selected>請先選大項...</option>";
-                    updatePlaceholder(); // 重置狀態
+                    updatePlaceholder(); 
                 })
                 .catch(error => alert('❌ 發生錯誤！'))
                 .finally(() => {
@@ -255,7 +254,7 @@
                 });
         });
 
-        // 6. 查詢功能
+        // 6. 查詢功能 (🔥 修正：直接讀取後端傳來的純文字日期)
         function runSearch() {
             const start = document.getElementById("searchStart").value;
             const end = document.getElementById("searchEnd").value;
@@ -283,11 +282,14 @@
                     }
                     let html = "";
                     data.forEach(row => {
-                        let date = new Date(row[0]).toISOString().split('T')[0];
+                        // 🔥 關鍵改變：這裡直接接收字串，不做 new Date() 轉換
+                        let date = row[0]; 
+
                         let cat = row[1] + (row[2] !== "-" ? " - " + row[2] : "");
                         let desc = row[3];
                         let price = row[4];
                         let colorClass = price < 0 ? "expense" : "income";
+                        
                         html += `
                         <div class="result-item">
                             <div class="result-left">
