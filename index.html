@@ -4,46 +4,44 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>家庭記帳</title>
-    
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2910/2910768.png">
     <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/2910/2910768.png">
 
     <style>
         body { font-family: "微軟正黑體", sans-serif; background-color: #f0f2f5; margin: 0; padding-bottom: 70px; }
-        
-        /* 頁面切換控制 */
         .page { display: none; padding: 20px; max-width: 600px; margin: 0 auto; }
         .active-page { display: block; }
-
-        /* 卡片樣式 */
         .card { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         h2 { text-align: center; color: #1a73e8; margin-bottom: 20px; font-weight: 800; }
-
-        /* 表單元件 */
         label { display: block; margin-top: 12px; color: #555; font-weight: bold; font-size: 0.95em; }
         select, input, button { width: 100%; padding: 12px; margin-top: 5px; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; box-sizing: border-box; }
         
-        /* 按鈕樣式 */
+        /* 按鈕群 */
         .btn-primary { background-color: #1a73e8; color: white; border: none; font-weight: bold; margin-top: 25px; cursor: pointer; padding: 14px; }
         .btn-search { background-color: #34a853; color: white; border: none; font-weight: bold; margin-top: 15px; cursor: pointer; padding: 12px; }
-        
-        /* 查詢結果 */
-        .result-item { border-bottom: 1px solid #eee; padding: 12px 0; display: flex; justify-content: space-between; align-items: center; }
+        .btn-danger { background-color: #ea4335; color: white; border: none; font-weight: bold; margin-top: 15px; cursor: pointer; padding: 12px; width: 48%; float: right;}
+        .btn-update { background-color: #fbbc05; color: black; border: none; font-weight: bold; margin-top: 15px; cursor: pointer; padding: 12px; width: 48%; float: left;}
+
+        /* 查詢結果 - 可點擊 */
+        .result-item { border-bottom: 1px solid #eee; padding: 12px 0; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.2s; }
+        .result-item:active { background-color: #f0f0f0; } /* 點擊時有回饋感 */
         .result-left { display: flex; flex-direction: column; }
         .res-date { font-size: 0.8em; color: #888; }
         .res-cat { font-weight: bold; color: #333; }
         .res-desc { font-size: 0.9em; color: #555; }
         .res-amount { font-weight: bold; font-size: 1.1em; }
-        .income { color: #34a853; } /* 綠色 */
-        .expense { color: #ea4335; } /* 紅色 */
+        .income { color: #34a853; } 
+        .expense { color: #ea4335; } 
 
-        /* 底部導航列 */
+        /* 編輯彈窗 (Modal) */
+        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
+        .modal-content { background-color: white; padding: 25px; border-radius: 15px; width: 90%; max-width: 400px; position: relative; max-height: 90vh; overflow-y: auto; }
+        .close-btn { position: absolute; top: 15px; right: 20px; font-size: 24px; cursor: pointer; color: #aaa; }
+
         .bottom-nav { position: fixed; bottom: 0; width: 100%; background: white; border-top: 1px solid #ddd; display: flex; justify-content: space-around; padding: 10px 0; box-shadow: 0 -2px 5px rgba(0,0,0,0.05); z-index: 1000; }
         .nav-item { text-align: center; color: #888; cursor: pointer; font-size: 0.9em; flex: 1; }
         .nav-item.active { color: #1a73e8; font-weight: bold; }
         .nav-icon { display: block; font-size: 1.5em; margin-bottom: 2px; }
-
-        /* 載入動畫 */
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #1a73e8; border-radius: 50%; width: 25px; height: 25px; animation: spin 1s linear infinite; display: none; margin: 20px auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
@@ -54,30 +52,24 @@
         <div class="card">
             <h2>📝 新增紀錄</h2>
             <form id="accountingForm">
-                <label>📅 日期</label>
+                <input type="hidden" name="action" value="add"> <label>📅 日期</label>
                 <input type="date" name="date" id="dateInput" required>
-
                 <label>📂 大項分類</label>
-                <select name="main_cat" id="mainCat" required onchange="updateSubCat()">
+                <select name="main_cat" id="mainCat" required onchange="updateSubCat('mainCat', 'subCat', 'subCatGroup', 'contentInput')">
                     <option value="" disabled selected>載入中...</option>
                 </select>
-
                 <div id="subCatGroup">
                     <label>🏷️ 細項分類</label>
-                    <select name="sub_cat" id="subCat" onchange="updatePlaceholder()">
+                    <select name="sub_cat" id="subCat" onchange="updatePlaceholder('subCat', 'contentInput')">
                         <option value="" disabled selected>請先選大項...</option>
                     </select>
                 </div>
-
                 <label id="contentLabel">📝 內容說明 (必填)</label>
-                <input type="text" name="content" placeholder="例如: 午餐" required>
-
+                <input type="text" name="content" id="contentInput" placeholder="例如: 午餐" required>
                 <label>💲 金額</label>
                 <input type="number" name="price" placeholder="輸入金額" required inputmode="numeric">
-
                 <label>📎 備註 (選填)</label>
                 <input type="text" name="note" placeholder="補充說明...">
-
                 <button type="submit" id="submitBtn" class="btn-primary">送出紀錄</button>
                 <div class="loader" id="loader"></div>
             </form>
@@ -87,14 +79,13 @@
     <div id="page-search" class="page">
         <div class="card">
             <h2>🔍 查帳</h2>
+            <p style="text-align:center; color:#666; font-size:0.9em;">(點擊列表可修改或刪除)</p>
             <label>📅 開始日期</label>
             <input type="date" id="searchStart">
             <label>📅 結束日期</label>
             <input type="date" id="searchEnd">
             <label>📂 分類篩選</label>
-            <select id="searchMainCat">
-                <option value="">全部</option>
-            </select>
+            <select id="searchMainCat"><option value="">全部</option></select>
             <label>📝 關鍵字</label>
             <input type="text" id="searchKeyword" placeholder="搜尋內容...">
             <button onclick="runSearch()" class="btn-search">查詢</button>
@@ -106,27 +97,58 @@
         </div>
     </div>
 
-    <div class="bottom-nav">
-        <div class="nav-item active" onclick="switchPage('record', this)">
-            <span class="nav-icon">📝</span>記帳
-        </div>
-        <div class="nav-item" onclick="switchPage('search', this)">
-            <span class="nav-icon">🔍</span>查詢
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal()">&times;</span>
+            <h2 style="margin-top:0;">✏️ 修改紀錄</h2>
+            <form id="editForm">
+                <input type="hidden" name="action" value="edit">
+                <input type="hidden" name="row_index" id="editRowIndex">
+                
+                <label>📅 日期</label>
+                <input type="date" name="date" id="editDate" required>
+                
+                <label>📂 大項</label>
+                <select name="main_cat" id="editMainCat" required onchange="updateSubCat('editMainCat', 'editSubCat', 'editSubCatGroup', 'editContent')"></select>
+                
+                <div id="editSubCatGroup">
+                    <label>🏷️ 細項</label>
+                    <select name="sub_cat" id="editSubCat" onchange="updatePlaceholder('editSubCat', 'editContent')"></select>
+                </div>
+                
+                <label>📝 內容</label>
+                <input type="text" name="content" id="editContent" required>
+                
+                <label>💲 金額 (正數)</label>
+                <input type="number" name="price" id="editPrice" required inputmode="numeric">
+                
+                <label>📎 備註</label>
+                <input type="text" name="note" id="editNote">
+
+                <div style="margin-top:20px; overflow:hidden;">
+                    <button type="button" onclick="submitEdit('edit')" class="btn-update">儲存修改</button>
+                    <button type="button" onclick="submitEdit('delete')" class="btn-danger">刪除</button>
+                </div>
+                <div class="loader" id="editLoader"></div>
+            </form>
         </div>
     </div>
 
+    <div class="bottom-nav">
+        <div class="nav-item active" onclick="switchPage('record', this)"><span class="nav-icon">📝</span>記帳</div>
+        <div class="nav-item" onclick="switchPage('search', this)"><span class="nav-icon">🔍</span>查詢</div>
+    </div>
+
     <script>
-        // ✅ 你的專屬 Apps Script 網址
+        // ✅ 你的 Apps Script 網址
         const scriptURL = 'https://script.google.com/macros/s/AKfycbwmOiZBz0YtDiRRJKYEoEZiSvaZ1A9ccbistMwSRGwf_29GQeeaPNTaWeplajei0MPU/exec';
 
         let categories = {};
         let placeholderMap = {};
         let requirementsMap = {}; 
 
-        // 1. 初始化
         window.onload = function() {
             document.getElementById('dateInput').valueAsDate = new Date();
-            
             fetch(scriptURL)
                 .then(response => response.json())
                 .then(data => {
@@ -134,127 +156,73 @@
                         categories = data.categories;
                         placeholderMap = data.hints || {};
                         requirementsMap = data.requirements || {};
-                    } else {
-                        categories = data; 
-                    }
+                    } else { categories = data; }
                     initDropdowns();
                 })
-                .catch(error => {
-                    console.error(error);
-                    alert("載入失敗，請檢查網路！");
-                });
+                .catch(error => { console.error(error); alert("載入失敗，請檢查網路！"); });
         };
 
-        // 2. 初始化選單
         function initDropdowns() {
-            const mainSelect = document.getElementById("mainCat");
-            const searchSelect = document.getElementById("searchMainCat");
+            // 初始化新增頁面與編輯頁面的選單
+            const targets = [['mainCat', 'searchMainCat'], ['editMainCat', null]];
             
-            mainSelect.innerHTML = '<option value="" disabled selected>請選擇...</option>';
-            if(searchSelect) searchSelect.innerHTML = '<option value="">全部</option>'; 
-
-            for (let main in categories) {
-                let opt1 = document.createElement("option");
-                opt1.value = main;
-                opt1.innerText = main;
-                mainSelect.appendChild(opt1);
-
-                if(searchSelect) {
-                    let opt2 = document.createElement("option");
-                    opt2.value = main;
-                    opt2.innerText = main;
-                    searchSelect.appendChild(opt2);
+            targets.forEach(([mainId, searchId]) => {
+                const mainSelect = document.getElementById(mainId);
+                mainSelect.innerHTML = '<option value="" disabled selected>請選擇...</option>';
+                for (let main in categories) {
+                    let opt = document.createElement("option"); opt.value = main; opt.innerText = main;
+                    mainSelect.appendChild(opt);
                 }
+            });
+            // 查詢頁面的分類
+            const sSelect = document.getElementById("searchMainCat");
+            sSelect.innerHTML = '<option value="">全部</option>';
+            for (let main in categories) {
+                let opt = document.createElement("option"); opt.value = main; opt.innerText = main;
+                sSelect.appendChild(opt);
             }
         }
 
-        // 3. 連動細項
-        function updateSubCat() {
-            const main = document.getElementById("mainCat").value;
-            const subSelect = document.getElementById("subCat");
-            const subGroup = document.getElementById("subCatGroup");
+        // 共用的細項連動邏輯
+        function updateSubCat(mainId, subId, groupId, contentId) {
+            const main = document.getElementById(mainId).value;
+            const subSelect = document.getElementById(subId);
+            const subGroup = document.getElementById(groupId);
 
             subSelect.innerHTML = "";
-
             if (!categories[main] || categories[main].length === 0) {
-                subGroup.style.display = "none";
-                subSelect.removeAttribute("required");
-                let opt = document.createElement("option");
-                opt.value = "-";
-                opt.selected = true;
-                subSelect.appendChild(opt);
+                subGroup.style.display = "none"; subSelect.removeAttribute("required");
+                let opt = document.createElement("option"); opt.value = "-"; opt.selected = true; subSelect.appendChild(opt);
             } else {
-                subGroup.style.display = "block";
-                subSelect.setAttribute("required", "");
-                let defaultOpt = document.createElement("option");
-                defaultOpt.text = "請選擇細項...";
-                defaultOpt.value = "";
-                defaultOpt.disabled = true;
-                defaultOpt.selected = true;
-                subSelect.appendChild(defaultOpt);
-
-                categories[main].forEach(optText => {
-                    let el = document.createElement("option");
-                    el.value = optText;
-                    el.innerText = optText;
-                    subSelect.appendChild(el);
-                });
+                subGroup.style.display = "block"; subSelect.setAttribute("required", "");
+                let defaultOpt = document.createElement("option"); defaultOpt.text = "請選擇細項..."; defaultOpt.value = ""; defaultOpt.disabled = true; defaultOpt.selected = true; subSelect.appendChild(defaultOpt);
+                categories[main].forEach(optText => { let el = document.createElement("option"); el.value = optText; el.innerText = optText; subSelect.appendChild(el); });
             }
-            updatePlaceholder();
+            updatePlaceholder(subId, contentId);
         }
 
-        // 4. 更新提示與必填狀態
-        function updatePlaceholder() {
-            const subSelect = document.getElementById("subCat");
-            const contentInput = document.getElementsByName("content")[0];
-            const contentLabel = document.getElementById("contentLabel");
+        function updatePlaceholder(subId, contentId) {
+            const subSelect = document.getElementById(subId);
+            const contentInput = document.getElementById(contentId);
             const selectedSub = subSelect.value;
-
-            contentInput.placeholder = placeholderMap[selectedSub] || placeholderMap["default"] || "例如: 詳細說明...";
-
-            let isRequired = true;
-            if (requirementsMap[selectedSub] === false) {
-                isRequired = false;
-            }
-
-            if (isRequired) {
-                contentInput.setAttribute("required", "");
-                contentLabel.innerText = "📝 內容說明 (必填)";
-                contentLabel.style.color = "#555"; 
-            } else {
-                contentInput.removeAttribute("required");
-                contentLabel.innerText = "📝 內容說明 (選填)";
-                contentLabel.style.color = "#28a745"; 
-            }
+            contentInput.placeholder = placeholderMap[selectedSub] || "例如: 詳細說明...";
+            if (requirementsMap[selectedSub] === false) contentInput.removeAttribute("required");
+            else contentInput.setAttribute("required", "");
         }
 
-        // 5. 提交表單
-        const form = document.forms['accountingForm'];
-        const btn = document.getElementById('submitBtn');
-        const loader = document.getElementById('loader');
-
-        form.addEventListener('submit', e => {
+        // --- 新增紀錄 ---
+        document.forms['accountingForm'].addEventListener('submit', e => {
             e.preventDefault();
-            btn.style.display = 'none';
-            loader.style.display = 'block';
-
-            fetch(scriptURL, { method: 'POST', body: new FormData(form)})
-                .then(response => {
-                    alert('✅ 記帳成功！');
-                    form.reset(); 
-                    document.getElementById('dateInput').valueAsDate = new Date();
-                    document.getElementById("subCatGroup").style.display = "block";
-                    document.getElementById("subCat").innerHTML = "<option value='' disabled selected>請先選大項...</option>";
-                    updatePlaceholder(); 
-                })
-                .catch(error => alert('❌ 發生錯誤！'))
-                .finally(() => {
-                    btn.style.display = 'block';
-                    loader.style.display = 'none';
-                });
+            const btn = document.getElementById('submitBtn'); const loader = document.getElementById('loader');
+            btn.style.display = 'none'; loader.style.display = 'block';
+            
+            fetch(scriptURL, { method: 'POST', body: new FormData(e.target)})
+                .then(res => { alert('✅ 記帳成功！'); e.target.reset(); document.getElementById('dateInput').valueAsDate = new Date(); })
+                .catch(err => alert('❌ 發生錯誤！'))
+                .finally(() => { btn.style.display = 'block'; loader.style.display = 'none'; });
         });
 
-        // 6. 查詢功能 (🔥 使用後端傳來的純文字日期)
+        // --- 查詢功能 ---
         function runSearch() {
             const start = document.getElementById("searchStart").value;
             const end = document.getElementById("searchEnd").value;
@@ -263,58 +231,88 @@
             const resultsArea = document.getElementById("resultsArea");
             const searchLoader = document.getElementById("searchLoader");
 
-            resultsArea.innerHTML = "";
-            searchLoader.style.display = "block";
-
+            resultsArea.innerHTML = ""; searchLoader.style.display = "block";
             let queryURL = scriptURL + "?action=search";
             if(start) queryURL += "&start=" + start;
             if(end) queryURL += "&end=" + end;
             if(main) queryURL += "&main=" + encodeURIComponent(main);
             if(content) queryURL += "&content=" + encodeURIComponent(content);
 
-            fetch(queryURL)
-                .then(response => response.json())
-                .then(data => {
-                    searchLoader.style.display = "none";
-                    if (data.error) {
-                        alert("系統忙碌中，請稍後再試");
-                        return;
-                    }
-                    if (data.length === 0) {
-                        resultsArea.innerHTML = '<p style="text-align:center;">查無資料</p>';
-                        return;
-                    }
-                    let html = "";
-                    data.forEach(row => {
-                        // 🔥 這裡直接使用後端傳來的字串，不做 new Date() 轉換，避免時區跑掉
-                        let date = row[0]; 
+            fetch(queryURL).then(res => res.json()).then(data => {
+                searchLoader.style.display = "none";
+                if (data.length === 0) { resultsArea.innerHTML = '<p style="text-align:center;">查無資料</p>'; return; }
+                
+                let html = "";
+                data.forEach(row => {
+                    // row[6] 是我們藏的列號 (Row Index)
+                    let rowDataJson = JSON.stringify(row).replace(/"/g, '&quot;'); 
+                    let date = row[0]; let cat = row[1] + (row[2] !== "-" ? " - " + row[2] : "");
+                    let desc = row[3]; let price = row[4]; let color = price < 0 ? "expense" : "income";
+                    
+                    // 點擊後呼叫 openEditModal
+                    html += `<div class="result-item" onclick="openEditModal(${rowDataJson})">
+                        <div class="result-left"><span class="res-date">${date}</span><span class="res-cat">${cat}</span><span class="res-desc">${desc}</span></div>
+                        <div class="res-amount ${color}">$${Math.abs(price)}</div>
+                    </div>`;
+                });
+                resultsArea.innerHTML = html;
+            }).catch(err => { searchLoader.style.display = "none"; alert("查詢失敗"); });
+        }
 
-                        let cat = row[1] + (row[2] !== "-" ? " - " + row[2] : "");
-                        let desc = row[3];
-                        let price = row[4];
-                        let colorClass = price < 0 ? "expense" : "income";
-                        
-                        html += `
-                        <div class="result-item">
-                            <div class="result-left">
-                                <span class="res-date">${date}</span>
-                                <span class="res-cat">${cat}</span>
-                                <span class="res-desc">${desc}</span>
-                            </div>
-                            <div class="res-amount ${colorClass}">
-                                $${Math.abs(price)}
-                            </div>
-                        </div>`;
-                    });
-                    resultsArea.innerHTML = html;
+        // --- 編輯功能 ---
+        function openEditModal(row) {
+            // row: [日期, 大項, 細項, 內容, 金額, 備註, 列號]
+            document.getElementById('editRowIndex').value = row[6];
+            document.getElementById('editDate').value = row[0].replace(/\//g, "-");
+            document.getElementById('editMainCat').value = row[1];
+            
+            // 觸發連動以產生細項選單
+            updateSubCat('editMainCat', 'editSubCat', 'editSubCatGroup', 'editContent');
+            
+            // 延遲一下再填入細項，確保選單已生成
+            setTimeout(() => {
+                document.getElementById('editSubCat').value = row[2];
+                updatePlaceholder('editSubCat', 'editContent');
+            }, 50);
+
+            document.getElementById('editContent').value = row[3];
+            document.getElementById('editPrice').value = Math.abs(row[4]); // 顯示絕對值
+            document.getElementById('editNote').value = row[5];
+            
+            document.getElementById('editModal').style.display = "flex";
+        }
+
+        function closeModal() { document.getElementById('editModal').style.display = "none"; }
+
+        function submitEdit(actionType) {
+            if (actionType === 'delete' && !confirm("確定要刪除這筆紀錄嗎？")) return;
+            
+            const form = document.getElementById('editForm');
+            const formData = new FormData(form);
+            formData.set('action', actionType); // 強制設定動作 (edit 或 delete)
+            
+            document.querySelector('.btn-update').style.display = 'none';
+            document.querySelector('.btn-danger').style.display = 'none';
+            document.getElementById('editLoader').style.display = 'block';
+
+            fetch(scriptURL, { method: 'POST', body: formData })
+                .then(res => res.text())
+                .then(text => {
+                    if(text.includes("UPDATED")) alert("✅ 修改成功！");
+                    else if(text.includes("DELETED")) alert("🗑️ 刪除成功！");
+                    else alert("狀態：" + text);
+                    
+                    closeModal();
+                    runSearch(); // 重新整理列表
                 })
-                .catch(error => {
-                    searchLoader.style.display = "none";
-                    alert("查詢失敗");
+                .catch(err => alert("❌ 請求失敗"))
+                .finally(() => {
+                    document.querySelector('.btn-update').style.display = 'block';
+                    document.querySelector('.btn-danger').style.display = 'block';
+                    document.getElementById('editLoader').style.display = 'none';
                 });
         }
 
-        // 7. 頁面切換
         function switchPage(pageName, navElement) {
              document.querySelectorAll('.page').forEach(el => el.classList.remove('active-page'));
              document.getElementById('page-' + pageName).classList.add('active-page');
