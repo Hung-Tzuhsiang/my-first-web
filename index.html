@@ -31,6 +31,12 @@
         .income { color: #34a853; } 
         .expense { color: #ea4335; } 
 
+        /* 🔥 新增：統計資訊區塊樣式 */
+        .summary-box { background-color: #e8f0fe; padding: 15px; border-radius: 10px; margin-top: 20px; text-align: center; border: 1px solid #d2e3fc; }
+        .summary-title { font-size: 0.9em; color: #666; margin-bottom: 5px; }
+        .summary-total { font-size: 1.8em; font-weight: bold; color: #1a73e8; }
+        .summary-count { font-size: 0.8em; color: #888; margin-top: 5px; }
+
         .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
         .modal-content { background-color: white; padding: 25px; border-radius: 15px; width: 90%; max-width: 400px; position: relative; max-height: 90vh; overflow-y: auto; }
         .close-btn { position: absolute; top: 15px; right: 20px; font-size: 24px; cursor: pointer; color: #aaa; }
@@ -100,9 +106,19 @@
             </div>
 
             <label>📝 關鍵字</label>
-            <input type="text" id="searchKeyword" placeholder="搜尋內容...">
+            <input type="text" id="searchKeyword" placeholder="搜尋內容、分類或備註...">
+            
             <button onclick="runSearch()" class="btn-search">查詢</button>
             <div class="loader" id="searchLoader"></div>
+            
+            <div id="summaryArea" style="display:none;">
+                <div class="summary-box">
+                    <div class="summary-title">總計金額</div>
+                    <div class="summary-total" id="totalAmount">$0</div>
+                    <div class="summary-count" id="totalCount">共 0 筆</div>
+                </div>
+            </div>
+
             <hr>
             <div id="resultsArea">
                 <p style="text-align:center; color:#888; margin-top:20px;">請輸入條件並查詢</p>
@@ -201,7 +217,6 @@
             }
         }
 
-        // --- 記帳與編輯用的細項連動 (包含必填判斷) ---
         function updateSubCat(mainId, subId, groupId, contentId, labelId) {
             const main = document.getElementById(mainId).value;
             const subSelect = document.getElementById(subId);
@@ -219,25 +234,17 @@
             updatePlaceholder(subId, contentId, labelId);
         }
 
-        // --- 🔥 專門給查詢頁面用的細項連動 (不需要必填判斷) ---
         function updateSearchSubCat() {
             const main = document.getElementById("searchMainCat").value;
             const subSelect = document.getElementById("searchSubCat");
             const subGroup = document.getElementById("searchSubGroup");
-
-            subSelect.innerHTML = '<option value="">全部</option>'; // 重置為全部
-
+            subSelect.innerHTML = '<option value="">全部</option>'; 
             if (main === "" || !categories[main]) {
-                // 如果大項選「全部」或無效，隱藏細項
                 subGroup.style.display = "none";
             } else {
-                // 如果選了特定大項，顯示細項選單
                 subGroup.style.display = "block";
                 categories[main].forEach(optText => {
-                    let el = document.createElement("option");
-                    el.value = optText;
-                    el.innerText = optText;
-                    subSelect.appendChild(el);
+                    let el = document.createElement("option"); el.value = optText; el.innerText = optText; subSelect.appendChild(el);
                 });
             }
         }
@@ -276,23 +283,22 @@
             const start = document.getElementById("searchStart").value;
             const end = document.getElementById("searchEnd").value;
             const main = document.getElementById("searchMainCat").value;
-            
-            // 🔥 取得細項選單的值
             const sub = document.getElementById("searchSubCat").value;
-            
             const content = document.getElementById("searchKeyword").value;
+            
             const resultsArea = document.getElementById("resultsArea");
             const searchLoader = document.getElementById("searchLoader");
+            const summaryArea = document.getElementById("summaryArea");
 
-            resultsArea.innerHTML = ""; searchLoader.style.display = "block";
+            resultsArea.innerHTML = ""; 
+            summaryArea.style.display = "none"; // 先隱藏統計
+            searchLoader.style.display = "block";
+
             let queryURL = scriptURL + "?action=search";
             if(start) queryURL += "&start=" + start;
             if(end) queryURL += "&end=" + end;
             if(main) queryURL += "&main=" + encodeURIComponent(main);
-            
-            // 🔥 傳送細項參數給後端
             if(sub && sub !== "全部") queryURL += "&sub=" + encodeURIComponent(sub);
-            
             if(content) queryURL += "&content=" + encodeURIComponent(content);
 
             fetch(queryURL).then(res => res.json()).then(data => {
@@ -300,17 +306,31 @@
                 if (data.length === 0) { resultsArea.innerHTML = '<p style="text-align:center;">查無資料</p>'; return; }
                 
                 let html = "";
+                let totalAmount = 0; // 🔥 統計總金額
+
                 data.forEach(row => {
                     let rowDataJson = JSON.stringify(row).replace(/"/g, '&quot;'); 
                     let date = row[0]; let cat = row[1] + (row[2] !== "-" ? " - " + row[2] : "");
-                    let desc = row[3]; let price = row[4]; let color = price < 0 ? "expense" : "income";
+                    let desc = row[3]; let price = Number(row[4]); 
+                    let color = price < 0 ? "expense" : "income";
                     
+                    // 累加金額
+                    totalAmount += price;
+
                     html += `<div class="result-item" onclick="openEditModal(${rowDataJson})">
                         <div class="result-left"><span class="res-date">${date}</span><span class="res-cat">${cat}</span><span class="res-desc">${desc}</span></div>
                         <div class="res-amount ${color}">$${Math.abs(price)}</div>
                     </div>`;
                 });
+
                 resultsArea.innerHTML = html;
+
+                // 🔥 更新統計區塊
+                summaryArea.style.display = "block";
+                document.getElementById("totalAmount").innerText = "$" + totalAmount;
+                document.getElementById("totalAmount").style.color = totalAmount < 0 ? "#ea4335" : "#1a73e8"; // 負數紅字，正數藍字
+                document.getElementById("totalCount").innerText = "共 " + data.length + " 筆";
+
             }).catch(err => { searchLoader.style.display = "none"; alert("查詢失敗"); });
         }
 
